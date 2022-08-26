@@ -1,5 +1,6 @@
 #![allow(arithmetic_overflow)]
-use std::fs;
+#![allow(overflowing_literals)]
+use std::{fs, env::{args, Args}, vec, cmp::Ordering};
 
 ///Gets from a byte vector, replacing None with a 0 and a false value and Some with the u8 and a true value.
 fn getor0(v: &Vec<u8>, i: usize) -> u8 {
@@ -27,12 +28,70 @@ fn get_i32(v: &Vec<u8>, i: &mut usize) -> i32 {
 }
 
 fn main() {
-    let script: Vec<u8> = match fs::read("dfds") { Ok(v) => v, Err(_) => Vec::new() };
-    let stack: Vec<i32> = Vec::new();
+    let argv: Args = args();
+    let mut path: String;
+    let mut argl: Vec<String> = vec![];
+    let mut no_break: bool = false;
+    for a in argv {
+        argl.push(a);
+    }
+    path = argl.get(1).expect("Please input a file!").clone();
+    match argl.get(2) {
+        Some(s) => {
+            match s.as_str() {
+                "no_break" => {no_break = true;},
+                _ => {}
+            }
+        },
+        None => {}
+    }
+    let script: Vec<u8> = match fs::read(path) { Ok(v) => v, Err(_) => Vec::new() };
+    let mut stack: Vec<i32> = vec![];
     let mut i: usize = 0;
     while i < script.len() {
         match next(&script, &mut i) {
-            0 => break,
+            0 => {if !no_break { break }},
+            1 => {stack.push(get_i32(&script, &mut i))},
+            2 => {popor0(&mut stack);},
+            3 => {
+                let left: i32 = popor0(&mut stack);
+                let right: i32 = popor0(&mut stack);
+                stack.push(left + right);
+            }
+            4 => {
+                let left: i32 = popor0(&mut stack);
+                let right: i32 = popor0(&mut stack);
+                stack.push(left - right);
+            }
+            5 => {
+                let left: i32 = popor0(&mut stack);
+                let right: i32 = popor0(&mut stack);
+                stack.push(left * right);
+            }
+            6 => {
+                let left: i32 = popor0(&mut stack);
+                let right: i32 = popor0(&mut stack);
+                stack.push(left / right);
+            },
+            7 => {
+                match popor0(&mut stack).cmp(&popor0(&mut stack)) {
+                    Ordering::Less => {stack.push(-1)},
+                    Ordering::Equal => {stack.push(0)},
+                    Ordering::Greater => {stack.push(1)},
+                }
+            },
+            8 => {
+                i = wrap(&script, get_i32(&script, &mut i));
+            },
+            9 => {
+                if popor0(&mut stack) < 0 {i = wrap(&script, get_i32(&script, &mut i))};
+            },
+            10 => {
+                if popor0(&mut stack) == 0 {i = wrap(&script, get_i32(&script, &mut i))};
+            },
+            11 => {
+                if popor0(&mut stack) > 0 {i = wrap(&script, get_i32(&script, &mut i))};
+            }
             _ => continue
         }
     }
