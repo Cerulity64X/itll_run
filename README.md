@@ -8,4 +8,7 @@ Indexing out of bounds will modulate or return 0 (based on which instruction you
 A sudden EOF (for example, when operating on an i32 and there are only 2 bytes left) will return a 0.
 There are 256 instructions, so no syntactical errors as all bytes have their own instructions.
 
+# Instructions
+0: Stop the program.
+
 # WIP
